@@ -21,6 +21,7 @@ object Constants {
     const val EXTRA_MEDIA_LIST = "extra_media_list"
     const val EXTRA_POSITION = "extra_position"
     const val EXTRA_ALBUM_NAME = "extra_album_name"
+    const val EXTRA_FILTER_TYPE = "extra_filter_type"
 
     enum class ThemeMode {
         LIGHT, DARK, SYSTEM
