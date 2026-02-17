@@ -9,7 +9,6 @@ import com.gokanaz.gallery.fragments.FullscreenImageFragment
 import com.gokanaz.gallery.fragments.VideoThumbnailFragment
 import com.gokanaz.gallery.models.MediaModel
 import com.gokanaz.gallery.models.MediaType
-import com.gokanaz.gallery.utils.Constants
 
 class MediaPagerAdapter(
     private val fragmentActivity: FragmentActivity,
@@ -24,8 +23,8 @@ class MediaPagerAdapter(
             MediaType.PHOTO -> FullscreenImageFragment.newInstance(media)
             MediaType.VIDEO -> VideoThumbnailFragment.newInstance(media) {
                 val intent = Intent(fragmentActivity, VideoPlayerActivity::class.java).apply {
-                    putExtra(Constants.EXTRA_MEDIA_URI, media.uri)
-                    putExtra(Constants.EXTRA_MEDIA_ID, media.id)
+                    putExtra("video_uri", media.uri)
+                    putExtra("video_path", media.path)
                 }
                 fragmentActivity.startActivity(intent)
             }

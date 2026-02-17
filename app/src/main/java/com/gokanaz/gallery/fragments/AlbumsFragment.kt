@@ -6,11 +6,11 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.gokanaz.gallery.R
 import com.gokanaz.gallery.adapters.AlbumAdapter
 import com.gokanaz.gallery.databinding.FragmentAlbumsBinding
-import com.gokanaz.gallery.utils.Constants
 import com.gokanaz.gallery.viewmodels.GalleryViewModel
 
 class AlbumsFragment : Fragment() {
@@ -40,16 +40,11 @@ class AlbumsFragment : Fragment() {
     private fun setupRecyclerView() {
         adapter = AlbumAdapter(
             albums = emptyMap(),
-            onAlbumClick = { albumName, mediaList ->
-                val fragment = GalleryFragment().apply {
-                    arguments = Bundle().apply {
-                        putString(Constants.EXTRA_ALBUM_NAME, albumName)
-                    }
+            onAlbumClick = { albumName, _ ->
+                val bundle = Bundle().apply {
+                    putString("album_name", albumName)
                 }
-                parentFragmentManager.beginTransaction()
-                    .replace(R.id.nav_host_fragment, fragment)
-                    .addToBackStack(null)
-                    .commit()
+                findNavController().navigate(R.id.galleryFragment, bundle)
             }
         )
 
@@ -60,12 +55,8 @@ class AlbumsFragment : Fragment() {
     private fun setupObservers() {
         viewModel.albums.observe(viewLifecycleOwner) { albums ->
             adapter.setAlbums(albums)
-            updateEmptyState(albums.isEmpty())
+            binding.emptyView.visibility = if (albums.isEmpty()) View.VISIBLE else View.GONE
         }
-    }
-
-    private fun updateEmptyState(isEmpty: Boolean) {
-        binding.emptyView.visibility = if (isEmpty) View.VISIBLE else View.GONE
     }
 
     override fun onDestroyView() {

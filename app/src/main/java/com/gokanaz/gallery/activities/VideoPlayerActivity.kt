@@ -11,7 +11,6 @@ import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import com.gokanaz.gallery.R
 import com.gokanaz.gallery.databinding.ActivityVideoPlayerBinding
-import com.gokanaz.gallery.utils.Constants
 
 class VideoPlayerActivity : AppCompatActivity() {
 
@@ -58,25 +57,32 @@ class VideoPlayerActivity : AppCompatActivity() {
     }
 
     private fun playVideo() {
-        val uri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra(Constants.EXTRA_MEDIA_ID, Uri::class.java)
+        val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("video_uri", Uri::class.java)
         } else {
             @Suppress("DEPRECATION")
-            intent.getParcelableExtra<Uri>(Constants.EXTRA_MEDIA_ID)
-        } ?: return
+            intent.getParcelableExtra("video_uri")
+        }
+
+        val path = intent.getStringExtra("video_path")
+
+        val videoUri = uri ?: if (path != null) Uri.parse(path) else null
+        videoUri ?: return
 
         mediaPlayer = MediaPlayer().apply {
-            setDataSource(this@VideoPlayerActivity, uri)
+            setDataSource(this@VideoPlayerActivity, videoUri)
             setDisplay(binding.videoView.holder)
             setOnPreparedListener { mp ->
                 mp.start()
                 binding.seekBar.max = mp.duration
                 binding.totalTime.text = formatTime(mp.duration)
+                binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
                 handler.postDelayed(runnable, 0)
             }
             setOnCompletionListener {
                 binding.btnPlayPause.setImageResource(R.drawable.ic_play)
             }
+            setOnErrorListener { _, _, _ -> false }
             prepareAsync()
         }
     }
@@ -103,12 +109,8 @@ class VideoPlayerActivity : AppCompatActivity() {
         val seconds = (millis / 1000) % 60
         val minutes = (millis / (1000 * 60)) % 60
         val hours = (millis / (1000 * 60 * 60))
-
-        return if (hours > 0) {
-            String.format("%02d:%02d:%02d", hours, minutes, seconds)
-        } else {
-            String.format("%02d:%02d", minutes, seconds)
-        }
+        return if (hours > 0) String.format("%02d:%02d:%02d", hours, minutes, seconds)
+        else String.format("%02d:%02d", minutes, seconds)
     }
 
     override fun onDestroy() {
