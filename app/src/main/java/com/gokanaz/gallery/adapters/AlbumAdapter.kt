@@ -14,56 +14,54 @@ class AlbumAdapter(
     private var albums: Map<String, List<MediaModel>>,
     private val onAlbumClick: (String, List<MediaModel>) -> Unit
 ) : RecyclerView.Adapter<AlbumAdapter.ViewHolder>() {
-    
-    private val albumList = albums.toList()
-    
+
+    private val albumList: MutableList<Pair<String, List<MediaModel>>> = albums.toList().toMutableList()
+
     fun setAlbums(newAlbums: Map<String, List<MediaModel>>) {
         albums = newAlbums
         albumList.clear()
         albumList.addAll(albums.toList())
         notifyDataSetChanged()
     }
-    
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_album, parent, false)
         return ViewHolder(view)
     }
-    
+
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val (albumName, mediaList) = albumList[position]
         holder.bind(albumName, mediaList)
     }
-    
+
     override fun getItemCount(): Int = albumList.size
-    
+
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         private val thumbnail: ImageView = itemView.findViewById(R.id.albumThumbnail)
         private val albumName: TextView = itemView.findViewById(R.id.albumName)
         private val itemCount: TextView = itemView.findViewById(R.id.itemCount)
         private val dateInfo: TextView = itemView.findViewById(R.id.dateInfo)
-        
+
         init {
             itemView.setOnClickListener {
-                val position = adapterPosition
-                if (position != RecyclerView.NO_POSITION) {
-                    val (albumName, mediaList) = albumList[position]
-                    onAlbumClick(albumName, mediaList)
+                val pos = adapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    val (name, mediaList) = albumList[pos]
+                    onAlbumClick(name, mediaList)
                 }
             }
         }
-        
+
         fun bind(albumName: String, mediaList: List<MediaModel>) {
             this.albumName.text = albumName
             itemCount.text = "${mediaList.size} items"
-            
-            // Get latest media date
+
             val latestMedia = mediaList.maxByOrNull { it.dateAdded }
             latestMedia?.let {
                 dateInfo.text = android.text.format.DateFormat.format("MMM dd, yyyy", it.dateAdded * 1000)
             }
-            
-            // Load thumbnail (first image in album)
+
             val firstMedia = mediaList.firstOrNull()
             if (firstMedia != null) {
                 Glide.with(itemView.context)

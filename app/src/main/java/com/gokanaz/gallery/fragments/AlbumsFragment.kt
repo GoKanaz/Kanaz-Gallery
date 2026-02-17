@@ -7,19 +7,21 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.gokanaz.gallery.R
 import com.gokanaz.gallery.adapters.AlbumAdapter
 import com.gokanaz.gallery.databinding.FragmentAlbumsBinding
+import com.gokanaz.gallery.utils.Constants
 import com.gokanaz.gallery.viewmodels.GalleryViewModel
 
 class AlbumsFragment : Fragment() {
-    
+
     private var _binding: FragmentAlbumsBinding? = null
     private val binding get() = _binding!!
-    
+
     private val viewModel: GalleryViewModel by viewModels()
-    
+
     private lateinit var adapter: AlbumAdapter
-    
+
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -28,19 +30,17 @@ class AlbumsFragment : Fragment() {
         _binding = FragmentAlbumsBinding.inflate(inflater, container, false)
         return binding.root
     }
-    
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
         setupRecyclerView()
         setupObservers()
     }
-    
+
     private fun setupRecyclerView() {
         adapter = AlbumAdapter(
             albums = emptyMap(),
             onAlbumClick = { albumName, mediaList ->
-                // Navigate to album detail (gallery filtered by album)
                 val fragment = GalleryFragment().apply {
                     arguments = Bundle().apply {
                         putString(Constants.EXTRA_ALBUM_NAME, albumName)
@@ -52,22 +52,22 @@ class AlbumsFragment : Fragment() {
                     .commit()
             }
         )
-        
+
         binding.albumsRecyclerView.layoutManager = LinearLayoutManager(requireContext())
         binding.albumsRecyclerView.adapter = adapter
     }
-    
+
     private fun setupObservers() {
         viewModel.albums.observe(viewLifecycleOwner) { albums ->
             adapter.setAlbums(albums)
             updateEmptyState(albums.isEmpty())
         }
     }
-    
+
     private fun updateEmptyState(isEmpty: Boolean) {
         binding.emptyView.visibility = if (isEmpty) View.VISIBLE else View.GONE
     }
-    
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
