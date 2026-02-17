@@ -28,7 +28,6 @@ class GalleryFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val viewModel: GalleryViewModel by viewModels()
-
     private lateinit var adapter: GalleryAdapter
 
     override fun onCreateView(
@@ -42,6 +41,12 @@ class GalleryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        val albumName = arguments?.getString("album_name")
+        if (albumName != null) {
+            viewModel.setAlbumFilter(albumName)
+        }
+
         setupRecyclerView()
         setupListeners()
         setupObservers()
@@ -113,11 +118,7 @@ class GalleryFragment : Fragment() {
     }
 
     @Deprecated("Deprecated in Java")
-    override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<out String>,
-        grantResults: IntArray
-    ) {
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         @Suppress("DEPRECATION")
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == Constants.REQUEST_CODE_PERMISSION) {
@@ -134,6 +135,7 @@ class GalleryFragment : Fragment() {
             putExtra(Constants.EXTRA_MEDIA_ID, media.id)
             putExtra(Constants.EXTRA_POSITION, position)
             putExtra(Constants.EXTRA_FILTER_TYPE, viewModel.filterType.value?.ordinal ?: 0)
+            arguments?.getString("album_name")?.let { putExtra(Constants.EXTRA_ALBUM_NAME, it) }
         }
         startActivity(intent)
     }
@@ -141,11 +143,7 @@ class GalleryFragment : Fragment() {
     private fun startSlideshow() {
         val mediaList = viewModel.filteredMedia.value ?: return
         if (mediaList.isNotEmpty()) {
-            val intent = Intent(requireContext(), SlideShowActivity::class.java).apply {
-                putExtra(Constants.EXTRA_POSITION, 0)
-                putExtra(Constants.EXTRA_FILTER_TYPE, viewModel.filterType.value?.ordinal ?: 0)
-            }
-            startActivity(intent)
+            startActivity(Intent(requireContext(), SlideShowActivity::class.java))
         }
     }
 
@@ -173,14 +171,11 @@ class GalleryFragment : Fragment() {
         }
     }
 
-    private fun shareSelected() {
-        val selected = adapter.getSelectedItems()
-    }
+    private fun shareSelected() {}
 
     private fun deleteSelected() {
         val selected = adapter.getSelectedItems()
         if (selected.isEmpty()) return
-
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(R.string.delete)
             .setMessage(R.string.delete_confirmation)
@@ -197,8 +192,8 @@ class GalleryFragment : Fragment() {
     }
 
     private fun updateFabVisibility() {
-        val mediaList = viewModel.filteredMedia.value
-        binding.fabSlideshow.visibility = if (mediaList.isNullOrEmpty()) View.GONE else View.VISIBLE
+        binding.fabSlideshow.visibility =
+            if (viewModel.filteredMedia.value.isNullOrEmpty()) View.GONE else View.VISIBLE
     }
 
     override fun onDestroyView() {
