@@ -1,7 +1,14 @@
 package com.gokanaz.gallery.activities
 
+import android.app.Activity
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.widget.ViewPager2
@@ -12,7 +19,6 @@ import com.gokanaz.gallery.databinding.ActivityPhotoDetailBinding
 import com.gokanaz.gallery.models.MediaModel
 import com.gokanaz.gallery.models.MediaType
 import com.gokanaz.gallery.utils.Constants
-import com.gokanaz.gallery.utils.FileUtils
 import com.gokanaz.gallery.viewmodels.GalleryViewModel
 
 class PhotoDetailActivity : AppCompatActivity() {
@@ -22,6 +28,9 @@ class PhotoDetailActivity : AppCompatActivity() {
     private lateinit var adapter: MediaPagerAdapter
     private var mediaList: List<MediaModel> = emptyList()
     private var currentPosition = 0
+    private var pendingDeleteUri: Uri? = null
+
+    private lateinit var deleteResultLauncher: ActivityResultLauncher<IntentSenderRequest>
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +38,15 @@ class PhotoDetailActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         viewModel = ViewModelProvider(this)[GalleryViewModel::class.java]
+
+        deleteResultLauncher = registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                viewModel.loadMedia()
+                finish()
+            }
+        }
 
         setupToolbar()
         setupViewPager()
@@ -117,18 +135,54 @@ class PhotoDetailActivity : AppCompatActivity() {
     }
 
     private fun deleteCurrentMedia() {
+        val currentMedia = mediaList.getOrNull(currentPosition) ?: return
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.delete)
             .setMessage(R.string.delete_confirmation)
             .setPositiveButton(R.string.ok) { _, _ ->
-                val currentMedia = mediaList.getOrNull(currentPosition) ?: return@setPositiveButton
-                if (FileUtils.deleteFile(this, currentMedia.uri)) {
-                    viewModel.loadMedia()
-                    finish()
-                }
+                performDelete(currentMedia)
             }
             .setNegativeButton(R.string.cancel, null)
             .show()
+    }
+
+    private fun performDelete(media: MediaModel) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                val pendingIntent = MediaStore.createDeleteRequest(
+                    contentResolver,
+                    listOf(media.uri)
+                )
+                deleteResultLauncher.launch(
+                    IntentSenderRequest.Builder(pendingIntent.intentSender).build()
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            try {
+                contentResolver.delete(media.uri, null, null)
+                viewModel.loadMedia()
+                finish()
+            } catch (e: android.app.RecoverableSecurityException) {
+                val intentSender = e.userAction.actionIntent.intentSender
+                deleteResultLauncher.launch(
+                    IntentSenderRequest.Builder(intentSender).build()
+                )
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else {
+            try {
+                val rows = contentResolver.delete(media.uri, null, null)
+                if (rows > 0) {
+                    viewModel.loadMedia()
+                    finish()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     private fun showMediaInfo() {
