@@ -1,0 +1,22 @@
+-keep class com.gokanaz.kanazgallery.** { *; }
+-keep class androidx.lifecycle.** { *; }
+-keep class com.github.bumptech.glide.** { *; }
+-keep class * implements android.os.Parcelable { *; }
+-keepclassmembers class * implements android.os.Parcelable { static ** CREATOR; }
+-keep class androidx.viewpager2.** { *; }
+-keep class com.google.android.material.** { *; }
+-dontwarn com.google.android.material.**
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable
+-keep public class * extends java.lang.Exception
+-keep class * implements androidx.viewbinding.ViewBinding { *; }
+-keep class * extends androidx.fragment.app.Fragment
+-keep class * extends androidx.activity.ComponentActivity
+-keepclasseswithmembernames class * { native <methods>; }
+-keepclassmembers enum * { public static **[] values(); public static ** valueOf(java.lang.String); }
+-keepclassmembers class **.R$* { public static <fields>; }
+-keepclasseswithmembers class * { @androidx.lifecycle.OnLifecycleEvent *; }
+-keep class **.Databinder { *; }
+-keep class **.DataBinderMapperImpl { *; }
+-keep class * implements androidx.databinding.ViewDataBinding { *; }
+-keep class * extends androidx.databinding.BaseObservable { *; }

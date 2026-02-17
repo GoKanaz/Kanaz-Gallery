@@ -1,0 +1,37 @@
+version: 2
+updates:
+  - package-ecosystem: "gradle"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automerge"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    reviewers:
+      - "GoKanaz"
+    target-branch: "main"
+    
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 5
+    labels:
+      - "github-actions"
+      - "automerge"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    reviewers:
+      - "GoKanaz"
+    target-branch: "main"

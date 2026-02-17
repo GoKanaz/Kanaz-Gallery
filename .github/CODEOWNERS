@@ -1,0 +1,11 @@
+# Default owners for everything in the repo
+* @GoKanaz
+
+# Owners for documentation files
+*.md @GoKanaz
+
+# Owners for GitHub configuration
+.github/ @GoKanaz
+
+# Owners for app source code
+/app/src/ @GoKanaz
