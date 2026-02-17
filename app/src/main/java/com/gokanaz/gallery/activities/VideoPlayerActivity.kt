@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.SurfaceHolder
 import android.view.View
+import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import com.gokanaz.gallery.R
@@ -77,9 +78,9 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
         mediaPlayer = MediaPlayer().apply {
             setDisplay(holder)
             setDataSource(this@VideoPlayerActivity, uri)
-            setOnVideoSizeChangedListener { _, width, height ->
-                videoWidth = width
-                videoHeight = height
+            setOnVideoSizeChangedListener { _, w, h ->
+                videoWidth = w
+                videoHeight = h
                 adjustVideoSize()
             }
             setOnPreparedListener { mp ->
@@ -109,15 +110,21 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
         val videoRatio = videoWidth.toFloat() / videoHeight.toFloat()
         val screenRatio = viewWidth.toFloat() / viewHeight.toFloat()
 
-        val layoutParams = surfaceView.layoutParams
+        val newWidth: Int
+        val newHeight: Int
+
         if (videoRatio > screenRatio) {
-            layoutParams.width = viewWidth
-            layoutParams.height = (viewWidth / videoRatio).toInt()
+            newWidth = viewWidth
+            newHeight = (viewWidth / videoRatio).toInt()
         } else {
-            layoutParams.height = viewHeight
-            layoutParams.width = (viewHeight * videoRatio).toInt()
+            newHeight = viewHeight
+            newWidth = (viewHeight * videoRatio).toInt()
         }
-        surfaceView.layoutParams = layoutParams
+
+        val params = surfaceView.layoutParams as ViewGroup.LayoutParams
+        params.width = newWidth
+        params.height = newHeight
+        surfaceView.layoutParams = params
     }
 
     private fun setupToolbar() {
