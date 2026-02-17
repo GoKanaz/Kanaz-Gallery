@@ -6,23 +6,29 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.SurfaceHolder
 import android.view.View
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import com.gokanaz.gallery.R
 import com.gokanaz.gallery.databinding.ActivityVideoPlayerBinding
 
-class VideoPlayerActivity : AppCompatActivity() {
+class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private lateinit var binding: ActivityVideoPlayerBinding
     private var mediaPlayer: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
+    private var videoUri: Uri? = null
+    private var isPrepared = false
+
     private val runnable: Runnable = object : Runnable {
         override fun run() {
             mediaPlayer?.let {
-                binding.seekBar.progress = it.currentPosition
-                binding.currentTime.text = formatTime(it.currentPosition)
-                handler.postDelayed(this, 1000)
+                if (it.isPlaying) {
+                    binding.seekBar.progress = it.currentPosition
+                    binding.currentTime.text = formatTime(it.currentPosition)
+                }
+                handler.postDelayed(this, 500)
             }
         }
     }
@@ -32,9 +38,59 @@ class VideoPlayerActivity : AppCompatActivity() {
         binding = ActivityVideoPlayerBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        videoUri = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra("video_uri", Uri::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra("video_uri")
+        }
+
+        if (videoUri == null) {
+            val path = intent.getStringExtra("video_path")
+            if (path != null) videoUri = Uri.parse(path)
+        }
+
+        binding.videoView.holder.addCallback(this)
+
         setupToolbar()
         setupListeners()
-        playVideo()
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) {
+        initMediaPlayer(holder)
+    }
+
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+
+    override fun surfaceDestroyed(holder: SurfaceHolder) {
+        mediaPlayer?.setDisplay(null)
+    }
+
+    private fun initMediaPlayer(holder: SurfaceHolder) {
+        val uri = videoUri ?: return
+
+        mediaPlayer?.release()
+        mediaPlayer = MediaPlayer().apply {
+            setDisplay(holder)
+            setDataSource(this@VideoPlayerActivity, uri)
+            setOnPreparedListener { mp ->
+                isPrepared = true
+                mp.start()
+                binding.seekBar.max = mp.duration
+                binding.totalTime.text = formatTime(mp.duration)
+                binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
+                handler.postDelayed(runnable, 0)
+            }
+            setOnCompletionListener {
+                binding.btnPlayPause.setImageResource(R.drawable.ic_play)
+                handler.removeCallbacks(runnable)
+            }
+            setOnErrorListener { _, _, _ ->
+                finish()
+                true
+            }
+            prepareAsync()
+        }
     }
 
     private fun setupToolbar() {
@@ -49,42 +105,11 @@ class VideoPlayerActivity : AppCompatActivity() {
 
         binding.seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser) mediaPlayer?.seekTo(progress)
+                if (fromUser && isPrepared) mediaPlayer?.seekTo(progress)
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
-    }
-
-    private fun playVideo() {
-        val uri: Uri? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableExtra("video_uri", Uri::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            intent.getParcelableExtra("video_uri")
-        }
-
-        val path = intent.getStringExtra("video_path")
-
-        val videoUri = uri ?: if (path != null) Uri.parse(path) else null
-        videoUri ?: return
-
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(this@VideoPlayerActivity, videoUri)
-            setDisplay(binding.videoView.holder)
-            setOnPreparedListener { mp ->
-                mp.start()
-                binding.seekBar.max = mp.duration
-                binding.totalTime.text = formatTime(mp.duration)
-                binding.btnPlayPause.setImageResource(R.drawable.ic_pause)
-                handler.postDelayed(runnable, 0)
-            }
-            setOnCompletionListener {
-                binding.btnPlayPause.setImageResource(R.drawable.ic_play)
-            }
-            setOnErrorListener { _, _, _ -> false }
-            prepareAsync()
-        }
     }
 
     private fun toggleControls() {
@@ -93,6 +118,7 @@ class VideoPlayerActivity : AppCompatActivity() {
     }
 
     private fun togglePlayPause() {
+        if (!isPrepared) return
         mediaPlayer?.let {
             if (it.isPlaying) {
                 it.pause()
@@ -111,6 +137,12 @@ class VideoPlayerActivity : AppCompatActivity() {
         val hours = (millis / (1000 * 60 * 60))
         return if (hours > 0) String.format("%02d:%02d:%02d", hours, minutes, seconds)
         else String.format("%02d:%02d", minutes, seconds)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        mediaPlayer?.pause()
+        binding.btnPlayPause.setImageResource(R.drawable.ic_play)
     }
 
     override fun onDestroy() {
