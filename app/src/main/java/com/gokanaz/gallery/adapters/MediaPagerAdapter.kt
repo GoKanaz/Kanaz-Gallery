@@ -6,6 +6,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.gokanaz.gallery.activities.VideoPlayerActivity
 import com.gokanaz.gallery.fragments.FullscreenImageFragment
+import com.gokanaz.gallery.fragments.VideoThumbnailFragment
 import com.gokanaz.gallery.models.MediaModel
 import com.gokanaz.gallery.models.MediaType
 import com.gokanaz.gallery.utils.Constants
