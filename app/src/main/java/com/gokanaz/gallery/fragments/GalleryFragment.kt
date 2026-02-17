@@ -129,10 +129,11 @@ class GalleryFragment : Fragment() {
 
     private fun openMediaDetail(media: MediaModel) {
         val mediaList = viewModel.filteredMedia.value ?: return
-        val position = mediaList.indexOf(media)
+        val position = mediaList.indexOf(media).coerceAtLeast(0)
         val intent = Intent(requireContext(), PhotoDetailActivity::class.java).apply {
-            putParcelableArrayListExtra(Constants.EXTRA_MEDIA_LIST, ArrayList(mediaList))
-            putExtra(Constants.EXTRA_POSITION, if (position >= 0) position else 0)
+            putExtra(Constants.EXTRA_MEDIA_ID, media.id)
+            putExtra(Constants.EXTRA_POSITION, position)
+            putExtra(Constants.EXTRA_FILTER_TYPE, viewModel.filterType.value?.ordinal ?: 0)
         }
         startActivity(intent)
     }
@@ -141,7 +142,8 @@ class GalleryFragment : Fragment() {
         val mediaList = viewModel.filteredMedia.value ?: return
         if (mediaList.isNotEmpty()) {
             val intent = Intent(requireContext(), SlideShowActivity::class.java).apply {
-                putParcelableArrayListExtra(Constants.EXTRA_MEDIA_LIST, ArrayList(mediaList))
+                putExtra(Constants.EXTRA_POSITION, 0)
+                putExtra(Constants.EXTRA_FILTER_TYPE, viewModel.filterType.value?.ordinal ?: 0)
             }
             startActivity(intent)
         }

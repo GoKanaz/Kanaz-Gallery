@@ -1,9 +1,9 @@
 package com.gokanaz.gallery.activities
 
 import android.content.Intent
-import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.ViewModelProvider
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.gokanaz.gallery.R
@@ -13,24 +13,27 @@ import com.gokanaz.gallery.models.MediaModel
 import com.gokanaz.gallery.models.MediaType
 import com.gokanaz.gallery.utils.Constants
 import com.gokanaz.gallery.utils.FileUtils
+import com.gokanaz.gallery.viewmodels.GalleryViewModel
 
 class PhotoDetailActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityPhotoDetailBinding
+    private lateinit var viewModel: GalleryViewModel
     private lateinit var adapter: MediaPagerAdapter
     private var mediaList: List<MediaModel> = emptyList()
     private var currentPosition = 0
-    private val favoriteIds = mutableSetOf<Long>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityPhotoDetailBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        viewModel = ViewModelProvider(this)[GalleryViewModel::class.java]
+
         setupToolbar()
         setupViewPager()
         setupListeners()
-        loadData()
+        observeMedia()
     }
 
     private fun setupToolbar() {
@@ -57,23 +60,30 @@ class PhotoDetailActivity : AppCompatActivity() {
         binding.btnInfo.setOnClickListener { showMediaInfo() }
     }
 
-    private fun loadData() {
-        mediaList = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            intent.getParcelableArrayListExtra(Constants.EXTRA_MEDIA_LIST, MediaModel::class.java)
-                ?: arrayListOf()
-        } else {
-            @Suppress("DEPRECATION")
-            intent.getParcelableArrayListExtra(Constants.EXTRA_MEDIA_LIST) ?: arrayListOf()
+    private fun observeMedia() {
+        val filterOrdinal = intent.getIntExtra(Constants.EXTRA_FILTER_TYPE, 0)
+        val filterType = Constants.FilterType.values()[filterOrdinal]
+        val targetPosition = intent.getIntExtra(Constants.EXTRA_POSITION, 0)
+
+        viewModel.setFilterType(filterType)
+
+        viewModel.filteredMedia.observe(this) { list ->
+            if (list.isEmpty()) return@observe
+            mediaList = list
+
+            if (!::adapter.isInitialized) {
+                adapter = MediaPagerAdapter(this, mediaList)
+                binding.viewPager.adapter = adapter
+                binding.viewPager.setCurrentItem(targetPosition, false)
+                currentPosition = targetPosition
+            } else {
+                adapter = MediaPagerAdapter(this, mediaList)
+                binding.viewPager.adapter = adapter
+            }
+
+            updateCounter()
+            updateFavoriteButton()
         }
-
-        currentPosition = intent.getIntExtra(Constants.EXTRA_POSITION, 0)
-
-        adapter = MediaPagerAdapter(this, mediaList)
-        binding.viewPager.adapter = adapter
-        binding.viewPager.setCurrentItem(currentPosition, false)
-
-        updateCounter()
-        updateFavoriteButton()
     }
 
     private fun updateCounter() {
@@ -82,7 +92,7 @@ class PhotoDetailActivity : AppCompatActivity() {
 
     private fun updateFavoriteButton() {
         val currentMedia = mediaList.getOrNull(currentPosition) ?: return
-        val isFavorite = favoriteIds.contains(currentMedia.id)
+        val isFavorite = viewModel.isFavorite(currentMedia.id)
         binding.btnFavorite.setImageResource(
             if (isFavorite) R.drawable.ic_favorite_filled
             else R.drawable.ic_favorite_border
@@ -91,11 +101,7 @@ class PhotoDetailActivity : AppCompatActivity() {
 
     private fun toggleFavorite() {
         val currentMedia = mediaList.getOrNull(currentPosition) ?: return
-        if (favoriteIds.contains(currentMedia.id)) {
-            favoriteIds.remove(currentMedia.id)
-        } else {
-            favoriteIds.add(currentMedia.id)
-        }
+        viewModel.toggleFavorite(currentMedia)
         updateFavoriteButton()
     }
 
@@ -117,6 +123,7 @@ class PhotoDetailActivity : AppCompatActivity() {
             .setPositiveButton(R.string.ok) { _, _ ->
                 val currentMedia = mediaList.getOrNull(currentPosition) ?: return@setPositiveButton
                 if (FileUtils.deleteFile(this, currentMedia.uri)) {
+                    viewModel.loadMedia()
                     finish()
                 }
             }
