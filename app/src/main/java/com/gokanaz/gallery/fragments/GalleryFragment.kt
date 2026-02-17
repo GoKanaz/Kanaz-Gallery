@@ -42,12 +42,10 @@ class GalleryFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
         setupRecyclerView()
         setupListeners()
         setupObservers()
         setupSearchView()
-
         checkPermissions()
     }
 
@@ -68,33 +66,23 @@ class GalleryFragment : Fragment() {
     }
 
     private fun setupListeners() {
-        binding.fabSlideshow.setOnClickListener {
-            startSlideshow()
-        }
+        binding.fabSlideshow.setOnClickListener { startSlideshow() }
 
         binding.chipAll.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) viewModel.setFilterType(Constants.FilterType.ALL)
         }
-
         binding.chipPhotos.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) viewModel.setFilterType(Constants.FilterType.PHOTOS)
         }
-
         binding.chipVideos.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) viewModel.setFilterType(Constants.FilterType.VIDEOS)
         }
-
         binding.chipFavorites.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) viewModel.setFilterType(Constants.FilterType.FAVORITES)
         }
 
-        binding.btnShare.setOnClickListener {
-            shareSelected()
-        }
-
-        binding.btnDelete.setOnClickListener {
-            deleteSelected()
-        }
+        binding.btnShare.setOnClickListener { shareSelected() }
+        binding.btnDelete.setOnClickListener { deleteSelected() }
     }
 
     private fun setupObservers() {
@@ -102,9 +90,6 @@ class GalleryFragment : Fragment() {
             adapter.setItems(mediaList)
             updateEmptyState(mediaList.isEmpty())
             updateFabVisibility()
-        }
-
-        viewModel.isLoading.observe(viewLifecycleOwner) { _ ->
         }
     }
 
@@ -143,9 +128,11 @@ class GalleryFragment : Fragment() {
     }
 
     private fun openMediaDetail(media: MediaModel) {
+        val mediaList = viewModel.filteredMedia.value ?: return
+        val position = mediaList.indexOf(media)
         val intent = Intent(requireContext(), PhotoDetailActivity::class.java).apply {
-            putExtra(Constants.EXTRA_MEDIA_ID, media.id)
-            putExtra(Constants.EXTRA_POSITION, 0)
+            putParcelableArrayListExtra(Constants.EXTRA_MEDIA_LIST, ArrayList(mediaList))
+            putExtra(Constants.EXTRA_POSITION, if (position >= 0) position else 0)
         }
         startActivity(intent)
     }
