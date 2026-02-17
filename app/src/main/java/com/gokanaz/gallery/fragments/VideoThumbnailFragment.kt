@@ -57,12 +57,7 @@ class VideoThumbnailFragment : Fragment() {
                 .into(thumbnail)
         }
 
-        btnPlay.setOnClickListener {
-            onPlayClick?.invoke()
-        }
-
-        thumbnail.setOnClickListener {
-            onPlayClick?.invoke()
-        }
+        btnPlay.setOnClickListener { onPlayClick?.invoke() }
+        thumbnail.setOnClickListener { onPlayClick?.invoke() }
     }
 }
