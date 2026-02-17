@@ -18,7 +18,6 @@ import com.gokanaz.gallery.adapters.MediaPagerAdapter
 import com.gokanaz.gallery.databinding.ActivityPhotoDetailBinding
 import com.gokanaz.gallery.models.MediaModel
 import com.gokanaz.gallery.models.MediaType
-import com.gokanaz.gallery.utils.Constants
 import com.gokanaz.gallery.viewmodels.GalleryViewModel
 
 class PhotoDetailActivity : AppCompatActivity() {
@@ -28,8 +27,6 @@ class PhotoDetailActivity : AppCompatActivity() {
     private lateinit var adapter: MediaPagerAdapter
     private var mediaList: List<MediaModel> = emptyList()
     private var currentPosition = 0
-    private var pendingDeleteUri: Uri? = null
-
     private lateinit var deleteResultLauncher: ActivityResultLauncher<IntentSenderRequest>
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,10 +45,35 @@ class PhotoDetailActivity : AppCompatActivity() {
             }
         }
 
+        val targetMediaId = intent.getLongExtra("media_id", -1L)
+        val targetPosition = intent.getIntExtra("position", 0)
+        val albumName = intent.getStringExtra("album_name")
+
         setupToolbar()
         setupViewPager()
         setupListeners()
-        observeMedia()
+
+        if (albumName != null) {
+            viewModel.setAlbumFilter(albumName)
+        }
+
+        viewModel.filteredMedia.observe(this) { list ->
+            if (list.isEmpty()) return@observe
+            mediaList = list
+
+            val pos = if (targetMediaId != -1L) {
+                list.indexOfFirst { it.id == targetMediaId }.takeIf { it >= 0 } ?: targetPosition
+            } else targetPosition
+
+            currentPosition = pos
+
+            adapter = MediaPagerAdapter(this, mediaList)
+            binding.viewPager.adapter = adapter
+            binding.viewPager.setCurrentItem(currentPosition, false)
+
+            updateCounter()
+            updateFavoriteButton()
+        }
     }
 
     private fun setupToolbar() {
@@ -78,41 +100,14 @@ class PhotoDetailActivity : AppCompatActivity() {
         binding.btnInfo.setOnClickListener { showMediaInfo() }
     }
 
-    private fun observeMedia() {
-        val filterOrdinal = intent.getIntExtra(Constants.EXTRA_FILTER_TYPE, 0)
-        val filterType = Constants.FilterType.values()[filterOrdinal]
-        val targetPosition = intent.getIntExtra(Constants.EXTRA_POSITION, 0)
-
-        viewModel.setFilterType(filterType)
-
-        viewModel.filteredMedia.observe(this) { list ->
-            if (list.isEmpty()) return@observe
-            mediaList = list
-
-            if (!::adapter.isInitialized) {
-                adapter = MediaPagerAdapter(this, mediaList)
-                binding.viewPager.adapter = adapter
-                binding.viewPager.setCurrentItem(targetPosition, false)
-                currentPosition = targetPosition
-            } else {
-                adapter = MediaPagerAdapter(this, mediaList)
-                binding.viewPager.adapter = adapter
-            }
-
-            updateCounter()
-            updateFavoriteButton()
-        }
-    }
-
     private fun updateCounter() {
         binding.counter.text = "${currentPosition + 1}/${mediaList.size}"
     }
 
     private fun updateFavoriteButton() {
         val currentMedia = mediaList.getOrNull(currentPosition) ?: return
-        val isFavorite = viewModel.isFavorite(currentMedia.id)
         binding.btnFavorite.setImageResource(
-            if (isFavorite) R.drawable.ic_favorite_filled
+            if (viewModel.isFavorite(currentMedia.id)) R.drawable.ic_favorite_filled
             else R.drawable.ic_favorite_border
         )
     }
@@ -139,9 +134,7 @@ class PhotoDetailActivity : AppCompatActivity() {
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.delete)
             .setMessage(R.string.delete_confirmation)
-            .setPositiveButton(R.string.ok) { _, _ ->
-                performDelete(currentMedia)
-            }
+            .setPositiveButton(R.string.ok) { _, _ -> performDelete(currentMedia) }
             .setNegativeButton(R.string.cancel, null)
             .show()
     }
@@ -149,39 +142,26 @@ class PhotoDetailActivity : AppCompatActivity() {
     private fun performDelete(media: MediaModel) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             try {
-                val pendingIntent = MediaStore.createDeleteRequest(
-                    contentResolver,
-                    listOf(media.uri)
-                )
-                deleteResultLauncher.launch(
-                    IntentSenderRequest.Builder(pendingIntent.intentSender).build()
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+                val pendingIntent = MediaStore.createDeleteRequest(contentResolver, listOf(media.uri))
+                deleteResultLauncher.launch(IntentSenderRequest.Builder(pendingIntent.intentSender).build())
+            } catch (e: Exception) { e.printStackTrace() }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             try {
                 contentResolver.delete(media.uri, null, null)
                 viewModel.loadMedia()
                 finish()
             } catch (e: android.app.RecoverableSecurityException) {
-                val intentSender = e.userAction.actionIntent.intentSender
                 deleteResultLauncher.launch(
-                    IntentSenderRequest.Builder(intentSender).build()
+                    IntentSenderRequest.Builder(e.userAction.actionIntent.intentSender).build()
                 )
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         } else {
             try {
-                val rows = contentResolver.delete(media.uri, null, null)
-                if (rows > 0) {
+                if (contentResolver.delete(media.uri, null, null) > 0) {
                     viewModel.loadMedia()
                     finish()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+            } catch (e: Exception) { e.printStackTrace() }
         }
     }
 
@@ -193,11 +173,8 @@ class PhotoDetailActivity : AppCompatActivity() {
             append("Size: ${currentMedia.getFormattedSize()}\n")
             append("Date: ${android.text.format.DateFormat.format("dd MMM yyyy HH:mm", currentMedia.dateAdded * 1000)}\n")
             append("Resolution: ${currentMedia.getResolution()}")
-            if (currentMedia.type == MediaType.VIDEO) {
-                append("\nDuration: ${currentMedia.getFormattedDuration()}")
-            }
+            if (currentMedia.type == MediaType.VIDEO) append("\nDuration: ${currentMedia.getFormattedDuration()}")
         }
-
         MaterialAlertDialogBuilder(this)
             .setTitle("Media Info")
             .setMessage(info)
