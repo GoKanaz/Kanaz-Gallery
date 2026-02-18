@@ -51,6 +51,7 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
         }
 
         binding.videoView.holder.addCallback(this)
+        binding.videoControls.visibility = View.VISIBLE
 
         setupToolbar()
         setupListeners()
@@ -68,7 +69,6 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private fun initMediaPlayer(holder: SurfaceHolder) {
         val uri = videoUri ?: return
-
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer().apply {
             setDisplay(holder)
@@ -85,10 +85,7 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 binding.btnPlayPause.setImageResource(R.drawable.ic_play)
                 handler.removeCallbacks(runnable)
             }
-            setOnErrorListener { _, _, _ ->
-                finish()
-                true
-            }
+            setOnErrorListener { _, _, _ -> false }
             prepareAsync()
         }
     }
