@@ -26,11 +26,15 @@ class GalleryFragment : Fragment() {
 
     private var _binding: FragmentGalleryBinding? = null
     private val binding get() = _binding!!
+
     private val viewModel: GalleryViewModel by viewModels()
     private lateinit var adapter: GalleryAdapter
-    private var albumName: String? = null
 
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View {
         _binding = FragmentGalleryBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -38,7 +42,7 @@ class GalleryFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        albumName = arguments?.getString("album_name")
+        val albumName = arguments?.getString("album_name")
         if (albumName != null) {
             viewModel.setAlbumFilter(albumName)
         }
@@ -61,16 +65,27 @@ class GalleryFragment : Fragment() {
             },
             onSelectionChanged = { updateSelectionUI() }
         )
+
         binding.galleryRecyclerView.layoutManager = GridLayoutManager(requireContext(), Constants.GRID_SPAN_COUNT)
         binding.galleryRecyclerView.adapter = adapter
     }
 
     private fun setupListeners() {
         binding.fabSlideshow.setOnClickListener { startSlideshow() }
-        binding.chipAll.setOnCheckedChangeListener { _, isChecked -> if (isChecked) viewModel.setFilterType(Constants.FilterType.ALL) }
-        binding.chipPhotos.setOnCheckedChangeListener { _, isChecked -> if (isChecked) viewModel.setFilterType(Constants.FilterType.PHOTOS) }
-        binding.chipVideos.setOnCheckedChangeListener { _, isChecked -> if (isChecked) viewModel.setFilterType(Constants.FilterType.VIDEOS) }
-        binding.chipFavorites.setOnCheckedChangeListener { _, isChecked -> if (isChecked) viewModel.setFilterType(Constants.FilterType.FAVORITES) }
+
+        binding.chipAll.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterType(Constants.FilterType.ALL)
+        }
+        binding.chipPhotos.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterType(Constants.FilterType.PHOTOS)
+        }
+        binding.chipVideos.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterType(Constants.FilterType.VIDEOS)
+        }
+        binding.chipFavorites.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked) viewModel.setFilterType(Constants.FilterType.FAVORITES)
+        }
+
         binding.btnShare.setOnClickListener { shareSelected() }
         binding.btnDelete.setOnClickListener { deleteSelected() }
     }
@@ -87,7 +102,9 @@ class GalleryFragment : Fragment() {
         binding.searchView.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) { viewModel.setSearchQuery(s?.toString() ?: "") }
+            override fun afterTextChanged(s: Editable?) {
+                viewModel.setSearchQuery(s?.toString() ?: "")
+            }
         })
     }
 
@@ -105,7 +122,9 @@ class GalleryFragment : Fragment() {
         @Suppress("DEPRECATION")
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == Constants.REQUEST_CODE_PERMISSION) {
-            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) viewModel.loadMedia()
+            if (grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                viewModel.loadMedia()
+            }
         }
     }
 
@@ -113,35 +132,43 @@ class GalleryFragment : Fragment() {
         val mediaList = viewModel.filteredMedia.value ?: return
         val position = mediaList.indexOf(media).coerceAtLeast(0)
         val intent = Intent(requireContext(), PhotoDetailActivity::class.java).apply {
-            putExtra("media_id", media.id)
-            putExtra("position", position)
-            albumName?.let { putExtra("album_name", it) }
+            putExtra(Constants.EXTRA_MEDIA_ID, media.id)
+            putExtra(Constants.EXTRA_POSITION, position)
+            putExtra(Constants.EXTRA_FILTER_TYPE, viewModel.filterType.value?.ordinal ?: 0)
+            arguments?.getString("album_name")?.let { putExtra(Constants.EXTRA_ALBUM_NAME, it) }
         }
         startActivity(intent)
     }
 
     private fun startSlideshow() {
         val mediaList = viewModel.filteredMedia.value ?: return
-        if (mediaList.isNotEmpty()) startActivity(Intent(requireContext(), SlideShowActivity::class.java))
+        if (mediaList.isNotEmpty()) {
+            startActivity(Intent(requireContext(), SlideShowActivity::class.java))
+        }
     }
 
     private fun enableSelectionMode() {
         adapter.setSelectionMode(true)
         binding.selectionBar.visibility = View.VISIBLE
         binding.fabSlideshow.hide()
+        requireActivity().invalidateOptionsMenu()
     }
 
     private fun disableSelectionMode() {
         adapter.setSelectionMode(false)
         binding.selectionBar.visibility = View.GONE
         binding.fabSlideshow.show()
+        requireActivity().invalidateOptionsMenu()
         viewModel.clearSelection()
     }
 
     private fun updateSelectionUI() {
         val selectedCount = adapter.getSelectedItems().size
-        if (selectedCount == 0) disableSelectionMode()
-        else binding.selectedCount.text = getString(R.string.items_selected, selectedCount)
+        if (selectedCount == 0) {
+            disableSelectionMode()
+        } else {
+            binding.selectedCount.text = getString(R.string.items_selected, selectedCount)
+        }
     }
 
     private fun shareSelected() {}
@@ -165,7 +192,8 @@ class GalleryFragment : Fragment() {
     }
 
     private fun updateFabVisibility() {
-        binding.fabSlideshow.visibility = if (viewModel.filteredMedia.value.isNullOrEmpty()) View.GONE else View.VISIBLE
+        binding.fabSlideshow.visibility =
+            if (viewModel.filteredMedia.value.isNullOrEmpty()) View.GONE else View.VISIBLE
     }
 
     override fun onDestroyView() {

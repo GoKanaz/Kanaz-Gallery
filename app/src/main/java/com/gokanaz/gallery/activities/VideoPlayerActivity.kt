@@ -8,7 +8,6 @@ import android.os.Handler
 import android.os.Looper
 import android.view.SurfaceHolder
 import android.view.View
-import android.view.ViewGroup
 import android.widget.SeekBar
 import androidx.appcompat.app.AppCompatActivity
 import com.gokanaz.gallery.R
@@ -21,8 +20,6 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
     private val handler = Handler(Looper.getMainLooper())
     private var videoUri: Uri? = null
     private var isPrepared = false
-    private var videoWidth = 0
-    private var videoHeight = 0
 
     private val runnable: Runnable = object : Runnable {
         override fun run() {
@@ -54,7 +51,6 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
         }
 
         binding.videoView.holder.addCallback(this)
-        binding.videoControls.visibility = View.VISIBLE
 
         setupToolbar()
         setupListeners()
@@ -64,9 +60,7 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
         initMediaPlayer(holder)
     }
 
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {
-        adjustVideoSize()
-    }
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 
     override fun surfaceDestroyed(holder: SurfaceHolder) {
         mediaPlayer?.setDisplay(null)
@@ -74,15 +68,11 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
 
     private fun initMediaPlayer(holder: SurfaceHolder) {
         val uri = videoUri ?: return
+
         mediaPlayer?.release()
         mediaPlayer = MediaPlayer().apply {
             setDisplay(holder)
             setDataSource(this@VideoPlayerActivity, uri)
-            setOnVideoSizeChangedListener { _, w, h ->
-                videoWidth = w
-                videoHeight = h
-                adjustVideoSize()
-            }
             setOnPreparedListener { mp ->
                 isPrepared = true
                 mp.start()
@@ -95,36 +85,12 @@ class VideoPlayerActivity : AppCompatActivity(), SurfaceHolder.Callback {
                 binding.btnPlayPause.setImageResource(R.drawable.ic_play)
                 handler.removeCallbacks(runnable)
             }
-            setOnErrorListener { _, _, _ -> false }
+            setOnErrorListener { _, _, _ ->
+                finish()
+                true
+            }
             prepareAsync()
         }
-    }
-
-    private fun adjustVideoSize() {
-        if (videoWidth == 0 || videoHeight == 0) return
-        val surfaceView = binding.videoView
-        val viewWidth = surfaceView.width
-        val viewHeight = surfaceView.height
-        if (viewWidth == 0 || viewHeight == 0) return
-
-        val videoRatio = videoWidth.toFloat() / videoHeight.toFloat()
-        val screenRatio = viewWidth.toFloat() / viewHeight.toFloat()
-
-        val newWidth: Int
-        val newHeight: Int
-
-        if (videoRatio > screenRatio) {
-            newWidth = viewWidth
-            newHeight = (viewWidth / videoRatio).toInt()
-        } else {
-            newHeight = viewHeight
-            newWidth = (viewHeight * videoRatio).toInt()
-        }
-
-        val params = surfaceView.layoutParams as ViewGroup.LayoutParams
-        params.width = newWidth
-        params.height = newHeight
-        surfaceView.layoutParams = params
     }
 
     private fun setupToolbar() {

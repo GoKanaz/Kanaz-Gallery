@@ -1,20 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black">
-
-    <SurfaceView
+    
+    <VideoView
         android:id="@+id/videoView"
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@id/videoControls"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/toolbar" />
-
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+        
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
@@ -23,7 +21,7 @@
         app:navigationIcon="@drawable/ic_back"
         app:title=""
         app:layout_constraintTop_toTopOf="parent" />
-
+        
     <LinearLayout
         android:id="@+id/videoControls"
         android:layout_width="match_parent"
@@ -31,26 +29,27 @@
         android:orientation="vertical"
         android:padding="16dp"
         android:background="@color/transparent_overlay"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent">
-
+        
         <SeekBar
             android:id="@+id/seekBar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
-
+            
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical">
-
+            
             <TextView
                 android:id="@+id/currentTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/white"
                 android:text="00:00" />
-
+                
             <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -58,23 +57,23 @@
                 android:gravity="center"
                 android:textColor="@color/white"
                 android:text="@string/video" />
-
+                
             <TextView
                 android:id="@+id/totalTime"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/white"
                 android:text="00:00" />
-
+                
         </LinearLayout>
-
+        
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center"
             android:layout_marginTop="8dp">
-
+            
             <ImageButton
                 android:id="@+id/btnPlayPause"
                 android:layout_width="56dp"
@@ -82,9 +81,9 @@
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_play"
                 android:tint="@color/white" />
-
+                
         </LinearLayout>
-
+        
     </LinearLayout>
-
+    
 </androidx.constraintlayout.widget.ConstraintLayout>
