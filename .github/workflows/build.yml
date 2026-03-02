@@ -44,7 +44,7 @@ jobs:
       run: ./gradlew test
 
     - name: Upload Debug APK
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: kanaz-gallery-debug
         path: app/build/outputs/apk/debug/*.apk
